@@ -1,0 +1,318 @@
+---
+title: "Lab 1 STA 5303"
+author: "Salman Imtiaz"
+output:
+  word_document:
+    toc: true
+  pdf_document:
+    toc: true
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(knitr)
+library(tidyverse)
+library(ggplot2)
+library(dplyr)
+library(tinytex)
+
+```
+
+```{r, echo = FALSE }
+## Data input and cleaning (if needed)
+load("GPA.Rdata")   # be sure data files are in the working directory
+load("Market.Rdata") 
+```
+
+ \newpage
+
+# Part 1:  Data analysis continuous predictor:  Grade point average (GPA.Rdata). 
+
+*The director of admissions of a small college selected 120 students at random from the new freshman class in a study to determine whether a student's grade point average (GPA) at the end of the freshman year (Y) can be predicted from the ACT test score (X).  Use this data set to answer the questions below*
+
+## Question 1
+
+*Produce summary statistics for each variable separately (mean, median, standard deviation etc) as well as a graph (histogram or boxplot) for each.  Are there any features of the data of concern or interest?*
+
+TEXT ANSWER HERE
+
+```{r }
+## Summary statistics
+summary(GPA)
+GPA_summary <- GPA %>% 
+  summarise(across(everything(), list(
+    mean = ~mean(.), 
+    median = ~median(.), 
+    sd = ~sd(.)
+  )))
+print(GPA_summary)
+
+## Histograms
+ggplot(GPA, aes(x = GPA)) + 
+  geom_histogram(binwidth = 0.1, fill = 'blue', color = 'black') +
+  labs(title = 'Histogram of GPA')
+
+ggplot(GPA, aes(x = ACT)) + 
+  geom_histogram(binwidth = 1, fill = 'green', color = 'black') +
+  labs(title = 'Histogram of ACT')
+
+## Boxplots
+ggplot(GPA, aes(y = GPA)) + 
+  geom_boxplot(fill = 'orange') +
+  labs(title = 'Boxplot of GPA')
+
+ggplot(GPA, aes(y = ACT)) + 
+  geom_boxplot(fill = 'purple') +
+  labs(title = 'Boxplot of ACT')
+
+
+```
+
+
+## Question 2
+
+*Obtain the least squares estimates of the parameters for a simple linear regression model.*
+
+```{r }
+## Linear model
+lm_GPA_ACT <- lm(GPA ~ ACT, data = GPA)
+summary(lm_GPA_ACT)
+
+## Estimated regression function
+coefficients(lm_GPA_ACT)
+
+
+```
+
+*a. State the estimated regression function.* 
+
+The estimated regression function is GPA = 2.114 + 0.039 * ACT. This equation predicts GPA based on the ACT score.
+
+*b.	Interpret the parameter estimates in context.  Are both relevant/meaningful?  What is the point estimate of the change in the mean response when the ACT test score increases by one point?*  
+
+The intercept (2.114) represents the estimated GPA when the ACT score is 0, which, while not practically meaningful since ACT scores can't be zero, serves as a part of the linear model. The slope (0.039) indicates that for each one-point increase in ACT score, the GPA is expected to increase by approximately 0.039 points, suggesting a positive relationship between ACT scores and GPA.
+
+*c.	Plot the estimated regression function and the data.  Does the estimated regression function appear to fit the data well?*
+
+The plot of the estimated regression line over the scatterplot of the data shows how well the line fits. In this case, if the data points are somewhat scattered around the line, it suggests a modest linear fit.
+
+```{r }
+## Plot the estimated regression function
+ggplot(GPA, aes(x = ACT, y = GPA)) + 
+  geom_point() +
+  geom_smooth(method = "lm", se = FALSE, color = "blue") +
+  labs(title = 'Regression Line: GPA vs ACT')
+
+
+```
+
+*d.	Obtain a point estimate of the mean freshman GPA for students with ACT test score X = 30.  How does this compare to the overall average GPA for students in the data set?  Explain.*
+
+The point estimate for GPA when ACT = 30 is approximately 3.28. This is slightly higher than the overall mean GPA, suggesting that students with an ACT score of 30 tend to have a higher GPA.
+
+```{r }
+## Point estimate of the mean GPA for ACT = 30
+predict(lm_GPA_ACT, newdata = data.frame(ACT = 30))
+
+
+```
+
+
+## Question 3
+
+*Residuals and error.  Obtain the residuals.*
+
+```{r }
+## Residuals
+residuals <- residuals(lm_GPA_ACT)
+residuals
+
+```
+
+*a.	Confirm that they sum to zero (hint: sum function in R).  Are there any particularly large (or small – more negative) values?*
+
+The residuals sum to approximately zero (-6.793177e-15), which is expected in a properly fitted linear regression model. Some residuals appear larger in magnitude, indicating some points deviate notably from the fitted line.
+
+```{r }
+## Sum of residuals
+sum(residuals)
+
+```
+
+*b.	What is the largest (in absolute value) residual and what does the residual mean in context.*
+
+The largest residual is approximately 2.74. This means that there is a student whose GPA deviates from the predicted GPA by 2.74 points, suggesting this student either overperformed or underperformed compared to the model's expectations.
+
+```{r }
+## Largest residual
+max_residual <- max(abs(residuals))
+max_residual
+
+```
+
+*c.	Obtain the estimate of the standard deviation of the errors and interpret this quantity.*
+
+The standard deviation of the residuals is approximately 0.62, indicating the average distance of the data points from the regression line. A lower value would suggest a tighter fit of the model.
+
+```{r }
+## Estimate of the standard deviation of errors
+sd_residuals <- sd(residuals)
+sd_residuals
+
+```
+
+## Question 4
+
+*Obtain a 95 percent confidence interval for the true slope parameter. Interpret your confidence interval. Does it include zero? Why might the director of admissions be interested in whether the confidence interval includes zero? *
+
+The 95% confidence interval for the slope is (0.0135, 0.0641). Since this interval does not include zero, it suggests a statistically significant positive relationship between ACT scores and GPA. The director of admissions might be interested in this interval to understand the strength and direction of the association.
+
+```{r }
+## 95% Confidence interval for the true slope parameter
+confint(lm_GPA_ACT, level = 0.95)
+
+
+```
+
+
+## Question 5
+
+*Conduct a hypothesis test based on the regression model of whether or not a linear association exists between student's ACT score (X) and GPA at the end of the freshman year (Y).  Clearly state the alternatives, decision rule, and your conclusion (include p-value).  How does the test compare to the analysis of the confidence interval in the previous question? *
+
+The hypothesis test results indicate that the p-value for the ACT coefficient is 0.00292, which is less than 0.05. Therefore, we reject the null hypothesis and conclude that there is a statistically significant linear association between ACT scores and GPA. This is consistent with the confidence interval analysis, which also suggested a significant relationship.
+
+```{r }
+## Summary includes p-value for hypothesis test
+summary(lm_GPA_ACT)
+
+
+```
+
+## Question 6
+
+*Confidence and prediction intervals.*
+*a.	Obtain a 95 percent interval estimate of the mean freshman GPA for students whose ACT test score is 28. Interpret your confidence interval.  *
+
+The 95% confidence interval for the mean GPA for an ACT score of 28 is (3.061, 3.341). This interval estimates the range where the true mean GPA for students with an ACT score of 28 likely falls.
+
+```{r }
+## Confidence interval for mean GPA when ACT = 28
+predict(lm_GPA_ACT, newdata = data.frame(ACT = 28), interval = "confidence", level = 0.95)
+
+
+```
+
+*b.	Mary Jones obtained a score of 28 on the entrance test. Predict her freshman GPA using a 95 percent prediction interval. Interpret your prediction interval. *
+
+The 95% prediction interval for Mary Jones's GPA is (1.959, 4.443). This wider interval accounts for individual variability, indicating where Mary Jones's GPA is likely to fall.
+
+```{r }
+## Prediction interval for Mary Jones with ACT = 28
+predict(lm_GPA_ACT, newdata = data.frame(ACT = 28), interval = "prediction", level = 0.95)
+
+
+```
+
+*c.	Is the prediction interval in part b wider than the confidence interval in the part a? Should it be? *
+
+Yes, the prediction interval is wider than the confidence interval because it includes the variability in individual GPAs around the regression line, not just the mean estimate.
+
+```{r }
+## Compare the width of the intervals
+conf_interval <- predict(lm_GPA_ACT, newdata = data.frame(ACT = 28), interval = "confidence", level = 0.95)
+pred_interval <- predict(lm_GPA_ACT, newdata = data.frame(ACT = 28), interval = "prediction", level = 0.95)
+
+# Width of the confidence interval
+conf_width <- conf_interval[3] - conf_interval[2]
+conf_width
+
+# Width of the prediction interval
+pred_width <- pred_interval[3] - pred_interval[2]
+pred_width
+
+# Check if the prediction interval is wider
+is_wider <- pred_width > conf_width
+is_wider
+
+
+```
+
+## Question 7
+
+*What is the estimated R2 for this SLR model?  Interpret this value in context.  Obtain the estimated correlation, r, between GPA and ACT test score.  What is the interpretation of this value. Which measure, R2 or r, has the more clear-cut operational interpretation? Explain.*
+
+The R2 value is 0.0726, indicating that approximately 7.26% of the variability in GPA can be explained by the ACT score. The correlation coefficient is 0.269, suggesting a weak positive linear relationship. R² provides a clear-cut interpretation of how much variance is explained by the model, whereas the correlation coefficient indicates the strength and direction of the relationship.
+
+```{r }
+## R-squared
+summary(lm_GPA_ACT)$r.squared
+
+## Correlation
+cor(GPA$GPA, GPA$ACT)
+
+
+```
+
+
+# Part 2:  Data analysis categorical predictor:  Market Share Data (Market.Rdata)
+
+*Executives from a large packaged foods manufacturer are interested in which factors influenced the market share (Y = share, average monthly market share for the product in percent) for one of their products.  The data collected is for 36 consecutive months from September 1999 to August 2002.*
+
+## Question 8
+
+*Executives are interested in whether their promotions have been effective.  Fit a model to predict the market share (share) based on the predictor variable promo (presence of a promotion: 1 if promotion, 0 otherwise).*
+
+```{r }
+## Linear model for Market dataset
+lm_Market_share <- lm(share ~ promo, data = Market)
+summary(lm_Market_share)
+
+
+```
+
+*a.	Interpret the estimated coefficient of promo in context.*
+
+The coefficient for promo is 0.16, suggesting that when there is a promotion, the market share is expected to increase by 0.16 percentage points, on average.
+
+*b.	Is there a significant relationship between promotions and market share (given supporting evidence from the model)?*
+
+The p-value for the promo coefficient is 0.0705, which is slightly higher than the 0.05 significance level. Therefore, we fail to reject the null hypothesis, suggesting that there is not enough evidence to conclude a statistically significant relationship between promotions and market share at the 5% level.
+
+
+
+## Question 9
+
+*Is there a significant relationship of market share to the year (1999 – 2002).  Fit the model to answer this question (treating year as a factor variable!). *
+
+```{r }
+## Convert year to factor
+Market$year <- as.factor(Market$year)
+
+## Linear model with year as a factor
+lm_year <- lm(share ~ year, data = Market)
+summary(lm_year)
+
+## Overall F-test
+anova(lm_year)
+
+
+```
+
+*a.	Conduct an overall “chunk” test (F test) to determine if year is significant.*
+
+The overall F-test for the variable year has a p-value of 0.8483, which is much higher than 0.05. This suggests that the year is not a significant predictor of market share, implying no significant differences in market share across the years 1999 to 2002.
+
+```{r }
+## Overall F-test
+anova(lm_year)
+
+
+```
+
+*b.	What is the reference category in the model you fit?*
+
+The reference category is the first level of the year factor, which is 1999. All other year coefficients are interpreted relative to this reference year.
+
+*c.	Use one of the estimates for year to illustrate how to properly interpret the coefficients from the model.*
+
+For year2000, the coefficient is -0.02917. This means that the market share in the year 2000 is estimated to be 0.029 percentage points lower than in the reference year (1999), though this difference is not statistically significant.
